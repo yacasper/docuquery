@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git remote *)",
+      "Bash(python -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/python -c \"import chromadb\")",
+      "Bash(ANTHROPIC_API_KEY=test .venv/bin/python *)",
+      "Bash(git -C /Users/casper/Development/Projects/my-git-hub/docuquery status)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

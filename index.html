@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuQuery</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 720px;
+            margin: 48px auto;
+            padding: 0 24px;
+            color: #1a1a2e;
+            background: #f8f9fb;
+        }
+
+        h1 { color: #1a56a0; margin-bottom: 4px; }
+        p.lead { color: #555; margin-top: 0; margin-bottom: 32px; }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e2e5ea;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+
+        h2 { margin-top: 0; font-size: 1rem; color: #444; text-transform: uppercase;
+             letter-spacing: .05em; }
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: 9px 12px;
+            margin: 8px 0 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            font-size: .95rem;
+            outline: none;
+            transition: border-color .15s;
+        }
+        input[type="text"]:focus { border-color: #1a56a0; }
+
+        button {
+            background: #1a56a0;
+            color: #fff;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-size: .95rem;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        button:hover:not(:disabled) { background: #154380; }
+        button:disabled { background: #9aabbd; cursor: not-allowed; }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: .9rem;
+        }
+        .success { background: #e3f6ee; color: #0b6b4f; }
+        .error   { background: #fdecea; color: #943126; }
+
+        .answer-box {
+            background: #f4f6f9;
+            border-radius: 6px;
+            padding: 16px;
+            white-space: pre-wrap;
+            line-height: 1.7;
+            font-size: .95rem;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DocuQuery</h1>
+    <p class="lead">Upload a document and ask questions in plain English.</p>
+
+    <div class="card">
+        <h2>1 — Upload document</h2>
+        <input type="file" id="fileInput" accept=".pdf,.txt">
+        <button id="uploadBtn" onclick="uploadFile()">Upload</button>
+        <div id="uploadStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>2 — Ask a question</h2>
+        <input
+            type="text"
+            id="question"
+            placeholder="e.g. What is the main topic of this document?"
+            onkeydown="if(event.key==='Enter') askQuestion()"
+        >
+        <button id="askBtn" onclick="askQuestion()">Ask</button>
+        <div id="answerBlock" style="display:none">
+            <strong>Answer:</strong>
+            <div id="answer" class="answer-box"></div>
+        </div>
+    </div>
+
+    <script>
+        async function uploadFile() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return showStatus('uploadStatus', 'Please select a file.', 'error');
+
+            setLoading('uploadBtn', true, 'Uploading…');
+            showStatus('uploadStatus', '');
+
+            const body = new FormData();
+            body.append('file', file);
+
+            try {
+                const res  = await fetch('/upload', { method: 'POST', body });
+                const data = await res.json();
+                showStatus('uploadStatus', res.ok ? data.message : data.detail, res.ok ? 'success' : 'error');
+            } catch {
+                showStatus('uploadStatus', 'Connection error.', 'error');
+            } finally {
+                setLoading('uploadBtn', false, 'Upload');
+            }
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) return;
+
+            setLoading('askBtn', true, 'Thinking…');
+            document.getElementById('answerBlock').style.display = 'none';
+
+            try {
+                const res  = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                });
+                const data = await res.json();
+                document.getElementById('answer').textContent = data.answer;
+                document.getElementById('answerBlock').style.display = 'block';
+            } catch {
+                document.getElementById('answer').textContent = 'Connection error.';
+                document.getElementById('answerBlock').style.display = 'block';
+            } finally {
+                setLoading('askBtn', false, 'Ask');
+            }
+        }
+
+        function setLoading(id, loading, label) {
+            const btn = document.getElementById(id);
+            btn.disabled = loading;
+            btn.textContent = label;
+        }
+
+        function showStatus(id, message, type = '') {
+            const el = document.getElementById(id);
+            el.textContent = message;
+            el.className = 'status ' + type;
+        }
+    </script>
+</body>
+</html>
